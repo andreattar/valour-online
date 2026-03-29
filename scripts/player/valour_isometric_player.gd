@@ -19,7 +19,7 @@ var _target_world: Vector2 = Vector2.ZERO
 var _path: Array[Vector2i] = []
 var _keyboard_dir: Vector2i = Vector2i.ZERO
 
-@onready var _visual: Node2D = $Visual
+@onready var _visual: CanvasItem = $Visual
 
 
 func _ready() -> void:
@@ -154,5 +154,5 @@ func _can_enter_cell(_g: Vector2i) -> bool:
 func _update_facing_from_velocity(v: Vector2) -> void:
 	if v.length_squared() < 0.01:
 		return
-	if _visual is Node2D:
+	if _visual:
 		_visual.scale.x = 1.0 if v.x >= 0.0 else -1.0
