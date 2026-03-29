@@ -1,6 +1,6 @@
 extends CharacterBody2D
 ## Grid-based isometric movement (Tibia-style logical tiles) + facing + melee + exhaust.
-## WASD: Input.get_vector. Left-click: BFS path. Space: melee (adjacent tile).
+## WASD: compass on the diamond (W=north, S=south, A=west, D=east). Left-click: BFS path. Space: melee.
 
 const PlaceholderSpriteFrames := preload("res://scripts/rendering/placeholder_sprite_frames.gd")
 
@@ -20,8 +20,8 @@ var _dest_tile: Vector2i = Vector2i.ZERO
 var _target_world: Vector2 = Vector2.ZERO
 var _path: Array[Vector2i] = []
 var _keyboard_dir: Vector2i = Vector2i.ZERO
-## Screen-down on isometric diamond (matches grid +gy step).
-var _facing: Vector2i = Vector2i(0, 1)
+## Single-tile step in grid space: (-1,0)=north, (1,0)=south, (0,1)=west, (0,-1)=east.
+var _facing: Vector2i = Vector2i(1, 0)
 
 var _world: Node
 var _exhaust := ExhaustTimers.new()
@@ -125,22 +125,23 @@ func _is_neighbor(a: Vector2i, b: Vector2i) -> bool:
 
 
 func _read_grid_direction_from_input() -> Vector2i:
-	# Explicit WASD (not only Input.get_vector) so keyboard is never eaten by deadzone.
-	var gx := 0
-	var gy := 0
-	if Input.is_action_pressed("move_right"):
-		gx += 1
-	if Input.is_action_pressed("move_left"):
-		gx -= 1
-	if Input.is_action_pressed("move_back"):
-		gy += 1
+	# Map WASD to compass on the isometric diamond (not raw gx/gy axes — those read as diagonals on screen).
+	# North = gx-1, South = gx+1, West = gy+1, East = gy-1 (matches typical 2:1 isometric tile steps).
+	var dgx := 0
+	var dgy := 0
 	if Input.is_action_pressed("move_forward"):
-		gy -= 1
-	if gx == 0 and gy == 0:
+		dgx -= 1
+	if Input.is_action_pressed("move_back"):
+		dgx += 1
+	if Input.is_action_pressed("move_left"):
+		dgy += 1
+	if Input.is_action_pressed("move_right"):
+		dgy -= 1
+	if dgx == 0 and dgy == 0:
 		return Vector2i.ZERO
-	if abs(gx) >= abs(gy):
-		return Vector2i(_sign_int(gx), 0)
-	return Vector2i(0, _sign_int(gy))
+	if abs(dgx) >= abs(dgy):
+		return Vector2i(_sign_int(dgx), 0)
+	return Vector2i(0, _sign_int(dgy))
 
 
 func _sign_int(x: int) -> int:
@@ -233,13 +234,17 @@ func _can_enter_cell(g: Vector2i) -> bool:
 
 
 func _dir_name(f: Vector2i) -> String:
-	if f.y > 0:
-		return "south"
-	if f.y < 0:
-		return "north"
-	if f.x > 0:
-		return "east"
-	return "west"
+	match f:
+		Vector2i(-1, 0):
+			return "north"
+		Vector2i(1, 0):
+			return "south"
+		Vector2i(0, 1):
+			return "west"
+		Vector2i(0, -1):
+			return "east"
+		_:
+			return "south"
 
 
 func _play_anim_walking() -> void:
@@ -255,7 +260,26 @@ func _play_anim_idle() -> void:
 func _update_facing_from_velocity(v: Vector2) -> void:
 	if v.length_squared() < 0.01:
 		return
-	if absf(v.x) >= absf(v.y):
-		_facing = Vector2i(1 if v.x > 0.0 else -1, 0)
-	else:
-		_facing = Vector2i(0, 1 if v.y > 0.0 else -1)
+	var hw := cell_size.x * 0.5
+	var hh := cell_size.y * 0.5
+	var dirs: Array[Vector2] = [
+		Vector2(-hw, -hh),
+		Vector2(hw, hh),
+		Vector2(-hw, hh),
+		Vector2(hw, -hh),
+	]
+	var facings: Array[Vector2i] = [
+		Vector2i(-1, 0),
+		Vector2i(1, 0),
+		Vector2i(0, 1),
+		Vector2i(0, -1),
+	]
+	var vn := v.normalized()
+	var best_i := 0
+	var best_dot := -1.1
+	for i in range(4):
+		var d: float = vn.dot(dirs[i].normalized())
+		if d > best_dot:
+			best_dot = d
+			best_i = i
+	_facing = facings[best_i]
