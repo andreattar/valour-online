@@ -1,5 +1,5 @@
-extends TileMap
-## Builds isometric TileSet at runtime and paints a small arena with walkable floor + wall border.
+extends TileMapLayer
+## Builds isometric TileSet at runtime and paints a small arena (Godot 4.4+ uses TileMapLayer, not TileMap).
 ## Group "iso_world": exposes is_walkable(grid: Vector2i).
 
 const CELL := Vector2i(64, 32)
@@ -11,11 +11,8 @@ const ATLAS_WALL := Vector2i(1, 0)
 
 func _ready() -> void:
 	add_to_group("iso_world")
-	if get_layer_count() == 0:
-		add_layer(-1)
 	tile_set = _build_tileset()
-	var layer := get_layer(0) as TileMapLayer
-	_paint_arena(layer)
+	_paint_arena()
 
 
 func _build_tileset() -> TileSet:
@@ -40,7 +37,7 @@ func _build_tileset() -> TileSet:
 	return ts
 
 
-func _paint_arena(layer: TileMapLayer) -> void:
+func _paint_arena() -> void:
 	for x in range(-map_radius, map_radius + 1):
 		for y in range(-map_radius, map_radius + 1):
 			var c := Vector2i(x, y)
@@ -48,23 +45,20 @@ func _paint_arena(layer: TileMapLayer) -> void:
 				x == -map_radius or x == map_radius or y == -map_radius or y == map_radius
 			)
 			if is_border:
-				layer.set_cell(c, 0, ATLAS_WALL)
+				set_cell(c, 0, ATLAS_WALL)
 			else:
-				layer.set_cell(c, 0, ATLAS_FLOOR)
+				set_cell(c, 0, ATLAS_FLOOR)
 
 
 func is_walkable(grid: Vector2i) -> bool:
-	var layer := get_layer(0) as TileMapLayer
-	if layer.get_cell_source_id(grid) < 0:
+	if get_cell_source_id(grid) < 0:
 		return false
-	return layer.get_cell_atlas_coords(grid) != ATLAS_WALL
+	return get_cell_atlas_coords(grid) != ATLAS_WALL
 
 
 func grid_to_world_pos(grid: Vector2i) -> Vector2:
-	var layer := get_layer(0) as TileMapLayer
-	return layer.to_global(layer.map_to_local(grid))
+	return to_global(map_to_local(grid))
 
 
 func world_to_grid_pos(global_pos: Vector2) -> Vector2i:
-	var layer := get_layer(0) as TileMapLayer
-	return layer.local_to_map(layer.to_local(global_pos))
+	return local_to_map(to_local(global_pos))
