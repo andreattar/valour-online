@@ -1,6 +1,6 @@
 extends CharacterBody2D
-## Grid movement on isometric tiles. WASD = screen-space + (up/down/left/right); each step is still
-## one diamond edge, chosen to best match that screen direction. Click: BFS path. Space: melee.
+## Tibia-style: square tile grid + smooth steps (oblique / top-down presentation, not diamond isometric).
+## WASD = screen cardinal on the grid (plus). Click = BFS. Space = melee.
 
 const PlaceholderSpriteFrames := preload("res://scripts/rendering/placeholder_sprite_frames.gd")
 
@@ -9,7 +9,7 @@ enum State { IDLE, WALKING }
 const ARRIVE_EPS := 2.0
 
 @export_group("Grid")
-@export var cell_size: Vector2 = Vector2(64, 32)
+@export var cell_size: Vector2 = Vector2(32, 32)
 @export var move_speed: float = 220.0
 @export var melee_damage: int = 4
 
@@ -20,8 +20,8 @@ var _dest_tile: Vector2i = Vector2i.ZERO
 var _target_world: Vector2 = Vector2.ZERO
 var _path: Array[Vector2i] = []
 var _keyboard_dir: Vector2i = Vector2i.ZERO
-## Last chosen grid step (for melee and path); also drives anim when using keyboard.
-var _facing: Vector2i = Vector2i(1, 0)
+## Grid steps: (0,-1) north, (0,1) south, (-1,0) west, (1,0) east — screen-aligned.
+var _facing: Vector2i = Vector2i(0, 1)
 
 var _world: Node
 var _exhaust := ExhaustTimers.new()
@@ -32,7 +32,7 @@ var _exhaust := ExhaustTimers.new()
 func _ready() -> void:
 	_visual.sprite_frames = PlaceholderSpriteFrames.make_character_frames()
 	_visual.play("idle_south")
-	_world = get_tree().get_first_node_in_group("iso_world")
+	_world = get_tree().get_first_node_in_group("world_grid")
 	if _world:
 		_grid_pos = _world.world_to_grid_pos(global_position)
 		global_position = _world.grid_to_world_pos(_grid_pos)
@@ -47,19 +47,17 @@ func get_aggressive_cooldown_remaining() -> float:
 
 
 func grid_to_world_fallback(g: Vector2i) -> Vector2:
-	var hw := cell_size.x * 0.5
-	var hh := cell_size.y * 0.5
-	return Vector2((g.x - g.y) * hw, (g.x + g.y) * hh)
+	return Vector2(
+		(float(g.x) + 0.5) * cell_size.x,
+		(float(g.y) + 0.5) * cell_size.y,
+	)
 
 
 func world_to_grid_fallback(p: Vector2) -> Vector2i:
-	var hw := cell_size.x * 0.5
-	var hh := cell_size.y * 0.5
-	if hw == 0.0 or hh == 0.0:
-		return Vector2i.ZERO
-	var gx := (p.x / hw + p.y / hh) * 0.5
-	var gy := (p.y / hh - p.x / hw) * 0.5
-	return Vector2i(round(gx), round(gy))
+	return Vector2i(
+		floori(p.x / cell_size.x),
+		floori(p.y / cell_size.y),
+	)
 
 
 func _grid_to_world(g: Vector2i) -> Vector2:
@@ -124,6 +122,32 @@ func _is_neighbor(a: Vector2i, b: Vector2i) -> bool:
 	return abs(d.x) + abs(d.y) == 1
 
 
+func _read_grid_direction_from_input() -> Vector2i:
+	var dx := 0
+	var dy := 0
+	if Input.is_action_pressed("move_right"):
+		dx += 1
+	if Input.is_action_pressed("move_left"):
+		dx -= 1
+	if Input.is_action_pressed("move_back"):
+		dy += 1
+	if Input.is_action_pressed("move_forward"):
+		dy -= 1
+	if dx == 0 and dy == 0:
+		return Vector2i.ZERO
+	if abs(dx) >= abs(dy):
+		return Vector2i(_sign_int(dx), 0)
+	return Vector2i(0, _sign_int(dy))
+
+
+func _sign_int(x: int) -> int:
+	if x > 0:
+		return 1
+	if x < 0:
+		return -1
+	return 0
+
+
 func _keyboard_screen_dir() -> Vector2:
 	var dx := 0.0
 	var dy := 0.0
@@ -140,48 +164,15 @@ func _keyboard_screen_dir() -> Vector2:
 	return Vector2(dx, dy).normalized()
 
 
-func _read_grid_direction_from_input() -> Vector2i:
-	var screen_dir := _keyboard_screen_dir()
-	if screen_dir.length_squared() < 1e-8:
-		return Vector2i.ZERO
-	return _best_grid_step_matching_world_dir(screen_dir)
-
-
-## Among the 4 diamond neighbors, pick the step whose world delta best aligns with `world_dir` (screen-space).
-func _best_grid_step_matching_world_dir(world_dir: Vector2) -> Vector2i:
-	var p0 := _grid_to_world(_grid_pos)
-	var best_step := Vector2i.ZERO
-	var best_dot := -10.0
-	var dirs: Array[Vector2i] = [
-		Vector2i(-1, 0),
-		Vector2i(1, 0),
-		Vector2i(0, 1),
-		Vector2i(0, -1),
-	]
-	for d in dirs:
-		var cell := _grid_pos + d
-		if not _can_enter_cell(cell):
-			continue
-		var p1 := _grid_to_world(cell)
-		var step := p1 - p0
-		if step.length_squared() < 1e-8:
-			continue
-		var dot: float = step.normalized().dot(world_dir)
-		if dot > best_dot:
-			best_dot = dot
-			best_step = d
-	return best_step
-
-
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("melee_attack"):
 		_try_melee()
 
 
 func _melee_facing_grid() -> Vector2i:
-	var ks := _keyboard_screen_dir()
-	if ks.length_squared() > 1e-8:
-		return _best_grid_step_matching_world_dir(ks)
+	var k := _read_grid_direction_from_input()
+	if k != Vector2i.ZERO:
+		return k
 	return _facing
 
 
@@ -277,6 +268,20 @@ func _dir_name_from_screen(screen_dir: Vector2) -> String:
 	return "north"
 
 
+func _dir_name_from_grid_facing(f: Vector2i) -> String:
+	match f:
+		Vector2i(0, -1):
+			return "north"
+		Vector2i(0, 1):
+			return "south"
+		Vector2i(-1, 0):
+			return "west"
+		Vector2i(1, 0):
+			return "east"
+		_:
+			return "south"
+
+
 func _anim_label() -> String:
 	var ks := _keyboard_screen_dir()
 	if ks.length_squared() > 1e-8:
@@ -287,20 +292,6 @@ func _anim_label() -> String:
 	if to_n.length_squared() > 1e-8:
 		return _dir_name_from_screen(to_n)
 	return _dir_name_from_grid_facing(_facing)
-
-
-func _dir_name_from_grid_facing(f: Vector2i) -> String:
-	match f:
-		Vector2i(-1, 0):
-			return "north"
-		Vector2i(1, 0):
-			return "south"
-		Vector2i(0, 1):
-			return "west"
-		Vector2i(0, -1):
-			return "east"
-		_:
-			return "south"
 
 
 func _play_anim_walking() -> void:
@@ -314,4 +305,7 @@ func _play_anim_idle() -> void:
 func _update_facing_from_velocity(v: Vector2) -> void:
 	if v.length_squared() < 0.01:
 		return
-	_facing = _best_grid_step_matching_world_dir(v.normalized())
+	if absf(v.x) >= absf(v.y):
+		_facing = Vector2i(1 if v.x > 0.0 else -1, 0)
+	else:
+		_facing = Vector2i(0, 1 if v.y > 0.0 else -1)

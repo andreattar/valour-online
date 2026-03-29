@@ -20,7 +20,7 @@ func _ready() -> void:
 	hp = max_hp
 	_anim.sprite_frames = PlaceholderSpriteFrames.make_slime_frames()
 	_anim.play(&"idle")
-	_world = get_tree().get_first_node_in_group("iso_world")
+	_world = get_tree().get_first_node_in_group("world_grid")
 	if _world and _world.has_method("world_to_grid_pos"):
 		grid_pos = _world.world_to_grid_pos(global_position)
 		global_position = _world.grid_to_world_pos(grid_pos)

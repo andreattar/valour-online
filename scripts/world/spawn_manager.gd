@@ -10,7 +10,7 @@ var _alive: bool = false
 
 
 func _ready() -> void:
-	_world = get_tree().get_first_node_in_group("iso_world")
+	_world = get_tree().get_first_node_in_group("world_grid")
 	call_deferred("_spawn")
 
 

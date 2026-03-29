@@ -1,32 +1,29 @@
 extends TileMapLayer
-## Builds isometric TileSet at runtime and paints a small arena (Godot 4.4+ uses TileMapLayer, not TileMap).
-## Group "iso_world": exposes is_walkable(grid: Vector2i).
+## Square logical grid for oblique / top-down ~45° presentation (Tibia-style), not 2:1 diamond isometric.
+## TileSet is orthogonal; sprites can later be drawn with oblique perspective.
+## Group "world_grid": is_walkable, grid_to_world_pos, world_to_grid_pos.
 
-const CELL := Vector2i(64, 32)
+const CELL := Vector2i(32, 32)
 const ATLAS_FLOOR := Vector2i(0, 0)
 const ATLAS_WALL := Vector2i(1, 0)
 
-@export var map_radius: int = 8
+@export var map_radius: int = 12
 
 
 func _ready() -> void:
-	add_to_group("iso_world")
+	add_to_group("world_grid")
 	tile_set = _build_tileset()
 	_paint_arena()
 
 
 func _build_tileset() -> TileSet:
 	var ts := TileSet.new()
-	ts.tile_shape = TileSet.TILE_SHAPE_ISOMETRIC
-	ts.tile_layout = TileSet.TILE_LAYOUT_DIAMOND_DOWN
 	ts.tile_size = CELL
-
-	var img := Image.create(128, 32, false, Image.FORMAT_RGBA8)
+	var img := Image.create(64, 32, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0.18, 0.22, 0.16, 1))
-	for x in range(64, 128):
+	for x in range(32, 64):
 		for y in range(32):
 			img.set_pixel(x, y, Color(0.35, 0.28, 0.22, 1))
-
 	var tex := ImageTexture.create_from_image(img)
 	var atlas := TileSetAtlasSource.new()
 	atlas.texture = tex

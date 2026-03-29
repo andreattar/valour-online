@@ -1,7 +1,7 @@
-[gd_scene load_steps=6 format=3 uid="uid://b8valourplay01"]
+[gd_scene load_steps=6 format=3 uid="uid://valourplayground01"]
 
-[ext_resource type="Script" path="res://scripts/world/isometric_world.gd" id="1_terrain"]
-[ext_resource type="Script" path="res://scripts/player/valour_isometric_player.gd" id="2_player"]
+[ext_resource type="Script" path="res://scripts/world/world_grid.gd" id="1_terrain"]
+[ext_resource type="Script" path="res://scripts/player/valour_grid_player.gd" id="2_player"]
 [ext_resource type="Script" path="res://scripts/world/spawn_manager.gd" id="3_spawn"]
 [ext_resource type="PackedScene" path="res://scenes/creatures/slime.tscn" id="4_slime"]
 [ext_resource type="Script" path="res://scripts/ui/exhaust_hud.gd" id="5_hud"]
@@ -9,7 +9,7 @@
 [sub_resource type="CircleShape2D" id="CircleShape2D_feet"]
 radius = 10.0
 
-[node name="IsometricPlayground" type="Node2D"]
+[node name="Playground" type="Node2D"]
 y_sort_enabled = true
 
 [node name="Terrain" type="TileMapLayer" parent="."]
@@ -17,19 +17,19 @@ script = ExtResource("1_terrain")
 
 [node name="TreeA" type="ColorRect" parent="."]
 z_index = -2
-position = Vector2(192, 96)
-offset_left = -20.0
-offset_top = -56.0
-offset_right = 20.0
+position = Vector2(200, 220)
+offset_left = -16.0
+offset_top = -48.0
+offset_right = 16.0
 offset_bottom = 8.0
 color = Color(0.18, 0.5, 0.22, 1)
 
 [node name="TreeB" type="ColorRect" parent="."]
 z_index = -2
-position = Vector2(-96, 48)
-offset_left = -20.0
-offset_top = -56.0
-offset_right = 20.0
+position = Vector2(96, 160)
+offset_left = -16.0
+offset_top = -48.0
+offset_right = 16.0
 offset_bottom = 8.0
 color = Color(0.22, 0.55, 0.28, 1)
 
