@@ -41,12 +41,9 @@ script = ExtResource("1_player")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Player"]
 shape = SubResource("CircleShape2D_feet")
 
-[node name="Visual" type="ColorRect" parent="Player"]
-offset_left = -14.0
-offset_top = -40.0
-offset_right = 14.0
-offset_bottom = 8.0
-color = Color(0.92, 0.72, 0.55, 1)
+[node name="Visual" type="AnimatedSprite2D" parent="Player"]
+position = Vector2(0, -16)
+y_sort_enabled = true
 
 [node name="Camera2D" type="Camera2D" parent="Player"]
 position_smoothing_enabled = true

@@ -138,9 +138,17 @@ func _read_grid_direction_from_input() -> Vector2i:
 		gy -= 1
 	if gx == 0 and gy == 0:
 		return Vector2i.ZERO
-	if absi(gx) >= absi(gy):
-		return Vector2i(signi(gx), 0)
-	return Vector2i(0, signi(gy))
+	if abs(gx) >= abs(gy):
+		return Vector2i(_sign_int(gx), 0)
+	return Vector2i(0, _sign_int(gy))
+
+
+func _sign_int(x: int) -> int:
+	if x > 0:
+		return 1
+	if x < 0:
+		return -1
+	return 0
 
 
 func _input(event: InputEvent) -> void:
