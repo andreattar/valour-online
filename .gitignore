@@ -1,0 +1,13 @@
+# Godot 4+
+.godot/
+
+# Import
+*.import
+
+# OS / editor
+.DS_Store
+*.swp
+*.tmp
+
+# Build
+export_presets.cfg

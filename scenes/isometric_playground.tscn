@@ -1,0 +1,53 @@
+[gd_scene load_steps=2 format=3 uid="uid://b8valourplay01"]
+
+[ext_resource type="Script" path="res://scripts/player/valour_isometric_player.gd" id="1_player"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_feet"]
+radius = 10.0
+
+[node name="IsometricPlayground" type="Node2D"]
+y_sort_enabled = true
+
+[node name="Ground" type="ColorRect" parent="."]
+z_index = -10
+offset_left = -800.0
+offset_top = -600.0
+offset_right = 800.0
+offset_bottom = 600.0
+color = Color(0.12, 0.14, 0.18, 1)
+
+[node name="TreeA" type="ColorRect" parent="."]
+position = Vector2(192, 96)
+offset_left = -20.0
+offset_top = -56.0
+offset_right = 20.0
+offset_bottom = 8.0
+color = Color(0.18, 0.5, 0.22, 1)
+
+[node name="TreeB" type="ColorRect" parent="."]
+position = Vector2(-96, 48)
+offset_left = -20.0
+offset_top = -56.0
+offset_right = 20.0
+offset_bottom = 8.0
+color = Color(0.22, 0.55, 0.28, 1)
+
+[node name="Player" type="CharacterBody2D" parent="."]
+y_sort_enabled = true
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("1_player")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player"]
+shape = SubResource("CircleShape2D_feet")
+
+[node name="Visual" type="ColorRect" parent="Player"]
+offset_left = -14.0
+offset_top = -40.0
+offset_right = 14.0
+offset_bottom = 8.0
+color = Color(0.92, 0.72, 0.55, 1)
+
+[node name="Camera2D" type="Camera2D" parent="Player"]
+position_smoothing_enabled = true
+position_smoothing_speed = 7.0
