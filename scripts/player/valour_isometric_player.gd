@@ -1,6 +1,6 @@
 extends CharacterBody2D
-## Grid-based isometric movement (Tibia-style logical tiles) + facing + melee + exhaust.
-## WASD: compass on the diamond (W=north, S=south, A=west, D=east). Left-click: BFS path. Space: melee.
+## Grid movement on isometric tiles. WASD = screen-space + (up/down/left/right); each step is still
+## one diamond edge, chosen to best match that screen direction. Click: BFS path. Space: melee.
 
 const PlaceholderSpriteFrames := preload("res://scripts/rendering/placeholder_sprite_frames.gd")
 
@@ -20,7 +20,7 @@ var _dest_tile: Vector2i = Vector2i.ZERO
 var _target_world: Vector2 = Vector2.ZERO
 var _path: Array[Vector2i] = []
 var _keyboard_dir: Vector2i = Vector2i.ZERO
-## Single-tile step in grid space: (-1,0)=north, (1,0)=south, (0,1)=west, (0,-1)=east.
+## Last chosen grid step (for melee and path); also drives anim when using keyboard.
 var _facing: Vector2i = Vector2i(1, 0)
 
 var _world: Node
@@ -124,32 +124,53 @@ func _is_neighbor(a: Vector2i, b: Vector2i) -> bool:
 	return abs(d.x) + abs(d.y) == 1
 
 
-func _read_grid_direction_from_input() -> Vector2i:
-	# Map WASD to compass on the isometric diamond (not raw gx/gy axes — those read as diagonals on screen).
-	# North = gx-1, South = gx+1, West = gy+1, East = gy-1 (matches typical 2:1 isometric tile steps).
-	var dgx := 0
-	var dgy := 0
+func _keyboard_screen_dir() -> Vector2:
+	var dx := 0.0
+	var dy := 0.0
 	if Input.is_action_pressed("move_forward"):
-		dgx -= 1
+		dy -= 1.0
 	if Input.is_action_pressed("move_back"):
-		dgx += 1
+		dy += 1.0
 	if Input.is_action_pressed("move_left"):
-		dgy += 1
+		dx -= 1.0
 	if Input.is_action_pressed("move_right"):
-		dgy -= 1
-	if dgx == 0 and dgy == 0:
+		dx += 1.0
+	if dx == 0.0 and dy == 0.0:
+		return Vector2.ZERO
+	return Vector2(dx, dy).normalized()
+
+
+func _read_grid_direction_from_input() -> Vector2i:
+	var screen_dir := _keyboard_screen_dir()
+	if screen_dir.length_squared() < 1e-8:
 		return Vector2i.ZERO
-	if abs(dgx) >= abs(dgy):
-		return Vector2i(_sign_int(dgx), 0)
-	return Vector2i(0, _sign_int(dgy))
+	return _best_grid_step_matching_world_dir(screen_dir)
 
 
-func _sign_int(x: int) -> int:
-	if x > 0:
-		return 1
-	if x < 0:
-		return -1
-	return 0
+## Among the 4 diamond neighbors, pick the step whose world delta best aligns with `world_dir` (screen-space).
+func _best_grid_step_matching_world_dir(world_dir: Vector2) -> Vector2i:
+	var p0 := _grid_to_world(_grid_pos)
+	var best_step := Vector2i.ZERO
+	var best_dot := -10.0
+	var dirs: Array[Vector2i] = [
+		Vector2i(-1, 0),
+		Vector2i(1, 0),
+		Vector2i(0, 1),
+		Vector2i(0, -1),
+	]
+	for d in dirs:
+		var cell := _grid_pos + d
+		if not _can_enter_cell(cell):
+			continue
+		var p1 := _grid_to_world(cell)
+		var step := p1 - p0
+		if step.length_squared() < 1e-8:
+			continue
+		var dot: float = step.normalized().dot(world_dir)
+		if dot > best_dot:
+			best_dot = dot
+			best_step = d
+	return best_step
 
 
 func _input(event: InputEvent) -> void:
@@ -157,12 +178,22 @@ func _input(event: InputEvent) -> void:
 		_try_melee()
 
 
+func _melee_facing_grid() -> Vector2i:
+	var ks := _keyboard_screen_dir()
+	if ks.length_squared() > 1e-8:
+		return _best_grid_step_matching_world_dir(ks)
+	return _facing
+
+
 func _try_melee() -> void:
 	if _walking:
 		return
 	if not _exhaust.can_aggressive():
 		return
-	var tgt: Vector2i = _grid_pos + _facing
+	var step := _melee_facing_grid()
+	if step == Vector2i.ZERO:
+		return
+	var tgt: Vector2i = _grid_pos + step
 	if not _can_enter_cell(tgt):
 		return
 	for n in get_tree().get_nodes_in_group("grid_enemies"):
@@ -233,7 +264,32 @@ func _can_enter_cell(g: Vector2i) -> bool:
 	return true
 
 
-func _dir_name(f: Vector2i) -> String:
+func _dir_name_from_screen(screen_dir: Vector2) -> String:
+	if screen_dir.length_squared() < 1e-8:
+		return "south"
+	var a := atan2(screen_dir.y, screen_dir.x)
+	if a >= -PI * 0.25 and a < PI * 0.25:
+		return "east"
+	if a >= PI * 0.25 and a < PI * 0.75:
+		return "south"
+	if a >= PI * 0.75 or a < -PI * 0.75:
+		return "west"
+	return "north"
+
+
+func _anim_label() -> String:
+	var ks := _keyboard_screen_dir()
+	if ks.length_squared() > 1e-8:
+		return _dir_name_from_screen(ks)
+	if velocity.length_squared() > 10.0:
+		return _dir_name_from_screen(velocity)
+	var to_n := _target_world - global_position
+	if to_n.length_squared() > 1e-8:
+		return _dir_name_from_screen(to_n)
+	return _dir_name_from_grid_facing(_facing)
+
+
+func _dir_name_from_grid_facing(f: Vector2i) -> String:
 	match f:
 		Vector2i(-1, 0):
 			return "north"
@@ -248,38 +304,14 @@ func _dir_name(f: Vector2i) -> String:
 
 
 func _play_anim_walking() -> void:
-	var d := _dir_name(_facing)
-	_visual.play("walk_%s" % d)
+	_visual.play("walk_%s" % _anim_label())
 
 
 func _play_anim_idle() -> void:
-	var d := _dir_name(_facing)
-	_visual.play("idle_%s" % d)
+	_visual.play("idle_%s" % _anim_label())
 
 
 func _update_facing_from_velocity(v: Vector2) -> void:
 	if v.length_squared() < 0.01:
 		return
-	var hw := cell_size.x * 0.5
-	var hh := cell_size.y * 0.5
-	var dirs: Array[Vector2] = [
-		Vector2(-hw, -hh),
-		Vector2(hw, hh),
-		Vector2(-hw, hh),
-		Vector2(hw, -hh),
-	]
-	var facings: Array[Vector2i] = [
-		Vector2i(-1, 0),
-		Vector2i(1, 0),
-		Vector2i(0, 1),
-		Vector2i(0, -1),
-	]
-	var vn := v.normalized()
-	var best_i := 0
-	var best_dot := -1.1
-	for i in range(4):
-		var d: float = vn.dot(dirs[i].normalized())
-		if d > best_dot:
-			best_dot = d
-			best_i = i
-	_facing = facings[best_i]
+	_facing = _best_grid_step_matching_world_dir(v.normalized())
