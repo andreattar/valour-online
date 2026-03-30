@@ -82,7 +82,7 @@ func remove_item(item: ItemResource, quantity: int = 1) -> int:
 			_quantities[i] -= can_remove
 			remaining -= can_remove
 			if _quantities[i] <= 0:
-				var removed_item := _slots[i]
+				var removed_item: ItemResource = _slots[i]
 				_slots[i] = null
 				_quantities[i] = 0
 				item_removed.emit(removed_item, i)

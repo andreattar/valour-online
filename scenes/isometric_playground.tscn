@@ -1,0 +1,64 @@
+[gd_scene format=3 uid="uid://cki6pavlg02r1"]
+
+[ext_resource type="Script" path="res://scripts/world/isometric_world.gd" id="1_terrain"]
+[ext_resource type="Script" path="res://scripts/player/valour_isometric_player.gd" id="2_player"]
+[ext_resource type="Script" uid="uid://bt7hfpnqfo46h" path="res://scripts/world/spawn_manager.gd" id="3_spawn"]
+[ext_resource type="Script" uid="uid://dflue30oynwrp" path="res://scripts/ui/exhaust_hud.gd" id="5_hud"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_feet"]
+
+[node name="IsometricPlayground" type="Node2D" unique_id=1454498640]
+y_sort_enabled = true
+
+[node name="Terrain" type="TileMapLayer" parent="." unique_id=1650025689]
+script = ExtResource("1_terrain")
+
+[node name="TreeA" type="ColorRect" parent="." unique_id=48007830]
+z_index = -2
+offset_left = -20.0
+offset_top = -56.0
+offset_right = 20.0
+offset_bottom = 8.0
+color = Color(0.18, 0.5, 0.22, 1)
+
+[node name="TreeB" type="ColorRect" parent="." unique_id=818243615]
+z_index = -2
+offset_left = -20.0
+offset_top = -56.0
+offset_right = 20.0
+offset_bottom = 8.0
+color = Color(0.22, 0.55, 0.28, 1)
+
+[node name="Entities" type="Node2D" parent="." unique_id=1107644374]
+y_sort_enabled = true
+
+[node name="Player" type="CharacterBody2D" parent="Entities" unique_id=4920544]
+y_sort_enabled = true
+collision_mask = 0
+script = ExtResource("2_player")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Entities/Player" unique_id=536994700]
+shape = SubResource("CircleShape2D_feet")
+
+[node name="Visual" type="AnimatedSprite2D" parent="Entities/Player" unique_id=1540426724]
+y_sort_enabled = true
+position = Vector2(0, -16)
+
+[node name="Camera2D" type="Camera2D" parent="Entities/Player" unique_id=165435109]
+position_smoothing_enabled = true
+position_smoothing_speed = 7.0
+
+[node name="SpawnManager" type="Node2D" parent="Entities" unique_id=1797925168]
+script = ExtResource("3_spawn")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=189564383]
+layer = 100
+
+[node name="ExhaustHUD" type="Label" parent="CanvasLayer" unique_id=296369052]
+offset_left = 16.0
+offset_top = 12.0
+offset_right = 520.0
+offset_bottom = 48.0
+theme_override_font_sizes/font_size = 16
+text = "Melee: ready (Space)"
+script = ExtResource("5_hud")

@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://valourskeleton01"]
+[gd_scene format=3 uid="uid://bgg088o4kjuua"]
 
 [ext_resource type="Script" path="res://scripts/creatures/skeleton_enemy.gd" id="1_skeleton"]
 [ext_resource type="Resource" path="res://resources/loot_tables/skeleton_loot.tres" id="2_loot"]
