@@ -1,0 +1,30 @@
+[gd_scene load_steps=4 format=3 uid="uid://valourrat01"]
+
+[ext_resource type="Script" path="res://scripts/creatures/rat_enemy.gd" id="1_rat"]
+[ext_resource type="Resource" path="res://resources/loot_tables/rat_loot.tres" id="2_loot"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_rat"]
+radius = 8.0
+
+[node name="Rat" type="CharacterBody2D"]
+collision_layer = 1
+collision_mask = 0
+y_sort_enabled = true
+script = ExtResource("1_rat")
+max_hp = 6
+attack_damage = 1
+xp_reward = 2
+aggro_range = 4
+move_speed = 140.0
+attack_cooldown_ms = 1800
+move_cooldown_ms = 500
+loot_table = ExtResource("2_loot")
+gold_min = 0
+gold_max = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_rat")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+position = Vector2(0, -8)
+y_sort_enabled = true

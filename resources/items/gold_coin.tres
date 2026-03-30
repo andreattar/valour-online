@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/item_resource.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "gold"
+display_name = "Gold Coin"
+description = "Currency."
+item_type = 3
+stackable = true
+max_stack = 10000
+gold_value = 1

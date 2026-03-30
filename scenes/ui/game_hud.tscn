@@ -1,0 +1,131 @@
+[gd_scene load_steps=9 format=3 uid="uid://gamehud001"]
+
+[ext_resource type="Script" path="res://scripts/ui/game_hud.gd" id="1_hud"]
+[ext_resource type="PackedScene" path="res://scenes/ui/action_bar.tscn" id="2_actionbar"]
+[ext_resource type="PackedScene" path="res://scenes/ui/inventory_panel.tscn" id="3_inventory"]
+[ext_resource type="PackedScene" path="res://scenes/ui/equipment_panel.tscn" id="4_equipment"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hp_bg"]
+bg_color = Color(0.2, 0.1, 0.1, 0.9)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hp_fill"]
+bg_color = Color(0.85, 0.2, 0.2, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mana_bg"]
+bg_color = Color(0.1, 0.1, 0.25, 0.9)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mana_fill"]
+bg_color = Color(0.2, 0.4, 0.9, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="GameHUD" type="CanvasLayer"]
+layer = 100
+script = ExtResource("1_hud")
+
+[node name="TopLeft" type="VBoxContainer" parent="."]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 250.0
+offset_bottom = 200.0
+theme_override_constants/separation = 6
+
+[node name="HPBar" type="ProgressBar" parent="TopLeft"]
+custom_minimum_size = Vector2(220, 24)
+layout_mode = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_hp_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_hp_fill")
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="Label" type="Label" parent="TopLeft/HPBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 12
+text = "100 / 100"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ManaBar" type="ProgressBar" parent="TopLeft"]
+custom_minimum_size = Vector2(220, 20)
+layout_mode = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_mana_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_mana_fill")
+max_value = 50.0
+value = 50.0
+show_percentage = false
+
+[node name="Label" type="Label" parent="TopLeft/ManaBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 11
+text = "50 / 50"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="StatsRow" type="HBoxContainer" parent="TopLeft"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="LevelLabel" type="Label" parent="TopLeft/StatsRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Lv 1"
+
+[node name="XPBar" type="ProgressBar" parent="TopLeft/StatsRow"]
+custom_minimum_size = Vector2(140, 14)
+layout_mode = 2
+size_flags_vertical = 4
+max_value = 100.0
+show_percentage = false
+
+[node name="ExhaustLabel" type="Label" parent="TopLeft"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Ready"
+
+[node name="TargetFrame" type="VBoxContainer" parent="TopLeft"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="TargetName" type="Label" parent="TopLeft/TargetFrame"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Target"
+
+[node name="TargetHPBar" type="ProgressBar" parent="TopLeft/TargetFrame"]
+custom_minimum_size = Vector2(180, 16)
+layout_mode = 2
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="ActionBar" parent="." instance=ExtResource("2_actionbar")]
+
+[node name="InventoryPanel" parent="." instance=ExtResource("3_inventory")]
+
+[node name="EquipmentPanel" parent="." instance=ExtResource("4_equipment")]

@@ -23,6 +23,10 @@ config/features=PackedStringArray("4.6", "Forward Plus")
 
 NetworkAuthority="*res://autoloads/network_authority.gd"
 MCPGameBridge="res://addons/godot_mcp/game_bridge/mcp_game_bridge.gd"
+PlayerStats="*res://scripts/data/player_stats.gd"
+ActionSystem="*res://scripts/combat/action_system.gd"
+Inventory="*res://scripts/systems/inventory.gd"
+Equipment="*res://scripts/systems/equipment.gd"
 
 [editor_plugins]
 

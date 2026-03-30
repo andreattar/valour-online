@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/item_resource.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "leather_armor"
+display_name = "Leather Armor"
+description = "Basic leather protection."
+item_type = 1
+equip_slot = 2
+bonus_defense = 3
+gold_value = 80

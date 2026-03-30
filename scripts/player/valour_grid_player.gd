@@ -3,17 +3,24 @@ extends CharacterBody2D
 ## WASD = screen cardinal on the grid (plus). Click = BFS. Space = melee.
 
 const PlaceholderSpriteFrames := preload("res://scripts/rendering/placeholder_sprite_frames.gd")
+const MeleeAction := preload("res://scripts/combat/actions/melee_action.gd")
+const HealAction := preload("res://scripts/combat/actions/heal_action.gd")
 
-enum State { IDLE, WALKING }
+signal target_changed(target: Node)
+
+enum State { IDLE, WALKING, DEAD }
 
 const ARRIVE_EPS := 2.0
 
 @export_group("Grid")
 @export var cell_size: Vector2 = Vector2(32, 32)
 @export var move_speed: float = 220.0
-@export var melee_damage: int = 4
+
+@export_group("Combat")
+@export var base_melee_damage: int = 4
 
 var state: State = State.IDLE
+var current_target: Node = null
 var _grid_pos: Vector2i = Vector2i.ZERO
 var _walking: bool = false
 var _dest_tile: Vector2i = Vector2i.ZERO
@@ -30,6 +37,7 @@ var _exhaust := ExhaustTimers.new()
 
 
 func _ready() -> void:
+	add_to_group("player")
 	_visual.sprite_frames = PlaceholderSpriteFrames.make_character_frames()
 	_visual.play("idle_south")
 	_world = get_tree().get_first_node_in_group("world_grid")
@@ -40,6 +48,47 @@ func _ready() -> void:
 		_grid_pos = world_to_grid_fallback(global_position)
 		global_position = grid_to_world_fallback(_grid_pos)
 	_target_world = global_position
+	
+	PlayerStats.died.connect(_on_died)
+	ActionSystem.set_player(self)
+	_setup_default_actions()
+
+
+func get_grid_pos() -> Vector2i:
+	return _grid_pos
+
+
+func get_melee_damage() -> int:
+	var weapon_dmg := Equipment.get_total_attack_damage()
+	return base_melee_damage + weapon_dmg + PlayerStats.total_strength() / 5
+
+
+func take_damage(amount: int) -> void:
+	if state == State.DEAD:
+		return
+	PlayerStats.take_damage(amount)
+
+
+func _on_died() -> void:
+	state = State.DEAD
+	velocity = Vector2.ZERO
+	_path.clear()
+	_visual.modulate = Color(0.5, 0.5, 0.5, 0.7)
+	set_physics_process(false)
+	set_process_input(false)
+	await get_tree().create_timer(2.0).timeout
+	_respawn()
+
+
+func _respawn() -> void:
+	PlayerStats.reset()
+	state = State.IDLE
+	_visual.modulate = Color.WHITE
+	_grid_pos = Vector2i(5, 5)
+	global_position = _grid_to_world(_grid_pos)
+	_target_world = global_position
+	set_physics_process(true)
+	set_process_input(true)
 
 
 func get_aggressive_cooldown_remaining() -> float:
@@ -73,6 +122,9 @@ func _world_to_grid(p: Vector2) -> Vector2i:
 
 
 func _physics_process(_delta: float) -> void:
+	if state == State.DEAD:
+		return
+	
 	_keyboard_dir = _read_grid_direction_from_input()
 	if _keyboard_dir != Vector2i.ZERO:
 		_facing = _keyboard_dir
@@ -176,7 +228,23 @@ func _melee_facing_grid() -> Vector2i:
 	return _facing
 
 
+func _setup_default_actions() -> void:
+	var melee := MeleeAction.new()
+	ActionSystem.register_action(melee)
+	ActionSystem.assign_to_slot(0, "melee_attack")
+	
+	var heal := HealAction.new()
+	ActionSystem.register_action(heal)
+	ActionSystem.assign_to_slot(1, "heal")
+
+
 func _try_melee() -> void:
+	perform_melee()
+
+
+func perform_melee() -> void:
+	if state == State.DEAD:
+		return
 	if _walking:
 		return
 	if not _exhaust.can_aggressive():
@@ -185,16 +253,30 @@ func _try_melee() -> void:
 	if step == Vector2i.ZERO:
 		return
 	var tgt: Vector2i = _grid_pos + step
-	if not _can_enter_cell(tgt):
-		return
 	for n in get_tree().get_nodes_in_group("grid_enemies"):
 		if n.has_method("get_grid_pos") and n.get_grid_pos() == tgt:
 			var attacker_id := get_instance_id()
 			var na := get_node_or_null("/root/NetworkAuthority")
 			if na == null or na.validate_melee(attacker_id, tgt):
-				n.take_damage(melee_damage)
+				n.take_damage(get_melee_damage())
+				_set_target(n)
+				PlayerStats.gain_xp(1)
 			_exhaust.consume_aggressive()
 			return
+
+
+func _set_target(node: Node) -> void:
+	if current_target == node:
+		return
+	current_target = node
+	target_changed.emit(node)
+	if node and node.has_signal("died"):
+		node.died.connect(_on_target_died, CONNECT_ONE_SHOT)
+
+
+func _on_target_died() -> void:
+	current_target = null
+	target_changed.emit(null)
 
 
 func _unhandled_input(event: InputEvent) -> void:
